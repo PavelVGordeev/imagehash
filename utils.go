@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"sync"
 	"time"
 )
@@ -178,6 +179,9 @@ func IDWT2d(data [][]float64, level int) {
 	}
 }
 
+func EraseLevel(data [][]float64) {
+
+}
 func floorp2(val uint) uint {
 	val |= val >> 1
 	val |= val >> 2
@@ -185,4 +189,39 @@ func floorp2(val uint) uint {
 	val |= val >> 8
 	val |= val >> 16
 	return val - (val >> 1)
+}
+
+func median(data [][]float64) float64 {
+	return 0.5 * (mediansel(data, len(data)/2-1) + mediansel(data, len(data)/2))
+}
+
+func mediansel(list [][]float64, idx int) float64 {
+	r := rand.Intn(len(list))
+	c := rand.Intn(len(list[0]))
+	var (
+		low    []float64
+		high   []float64
+		pivots []float64
+	)
+
+	pivot := list[r][c]
+	for i := 0; i < len(list); i++ {
+		for j := 0; j < len(list[0]); j++ {
+			if list[i][j] < pivot {
+				low = append(low, list[i][j])
+			} else if list[i][j] == pivot {
+				pivots = append(pivots, list[i][j])
+			} else {
+				high = append(high, list[i][j])
+			}
+		}
+	}
+	if idx < len(low) {
+		return mediansel(low, idx)
+	} else if idx < len(low)+len(pivots) {
+		return pivots[0]
+	} else {
+		return mediansel(high, idx-len(low)-len(pivots))
+	}
+
 }

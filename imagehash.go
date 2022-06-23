@@ -10,7 +10,9 @@ type Imagehash struct {
 }
 
 func NewHash(filename string, size uint) Imagehash {
-	return Imagehash{hash: make([]byte, 0, floorp2(size))}
+	hash := Imagehash{hash: make([]byte, floorp2(size))}
+	//hash.Whash(filename)
+	return hash
 }
 func (i Imagehash) String() string {
 	return hex.EncodeToString(i.hash)
@@ -31,6 +33,7 @@ func (i *Imagehash) FromString(hashstr string) error {
 
 func (i *Imagehash) Whash(data [][]float64, level int) error {
 	DWT2d(data, level)
+	EraseLevel(data)
 	IDWT2d(data, level)
 	DWT2d(data, level)
 	return nil
