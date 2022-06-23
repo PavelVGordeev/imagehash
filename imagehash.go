@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/hex"
+	"math/bits"
 	"math/rand"
 )
 
@@ -9,11 +10,6 @@ type Imagehash struct {
 	hash []byte
 }
 
-func NewHash(filename string, size uint) Imagehash {
-	hash := Imagehash{hash: make([]byte, floorp2(size))}
-	//hash.Whash(filename)
-	return hash
-}
 func (i Imagehash) String() string {
 	return hex.EncodeToString(i.hash)
 }
@@ -31,11 +27,33 @@ func (i *Imagehash) FromString(hashstr string) error {
 	return nil
 }
 
-func (i *Imagehash) Whash(data [][]float64, level int) error {
+func (i *Imagehash) Whash(data [][]float64, hashsize int) error {
+	hashsize = int(floorp2(hashsize))
+	level := bits.Len(uint(len(data)/hashsize)) - 1
 	DWT2d(data, level)
-	EraseLevel(data)
+	eraselevel(data, level)
 	IDWT2d(data, level)
 	DWT2d(data, level)
+	excerpt := getexcerpt(data, hashsize)
+	med := median(excerpt)
+	i.hash = make([]byte, hashsize)
+	ctr := 0
+	offset := 0
+	var acc byte
+	for k := 0; k < hashsize; k++ {
+		for j := 0; j < hashsize; j++ {
+			if excerpt[k][j] > med {
+				acc ^= 1
+				acc <<= 1
+			}
+			ctr++
+			if ctr%8 == 0 && ctr != 0 {
+				i.hash[offset] = acc
+				offset++
+				acc = 0
+			}
+		}
+	}
 	return nil
 }
 func main() {
@@ -46,5 +64,6 @@ func main() {
 			data[i][j] = rand.Float64()
 		}
 	}
-	Dwt2dC(data, 2)
+	i := Imagehash{}
+	i.Whash(data, 16)
 }

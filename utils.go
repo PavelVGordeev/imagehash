@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math/bits"
 	"math/rand"
 	"sync"
 	"time"
@@ -179,41 +180,63 @@ func IDWT2d(data [][]float64, level int) {
 	}
 }
 
-func EraseLevel(data [][]float64) {
-
+func eraselevel(data [][]float64, level int) {
+	maxlvl := bits.Len(floorp2(len(data))) - 1
+	if level > maxlvl {
+		return
+	}
+	eraseidx := 1 << (maxlvl - level)
+	for i := 0; i < eraseidx; i++ {
+		for j := 0; j < eraseidx; j++ {
+			data[i][j] = 0.0
+		}
+	}
 }
-func floorp2(val uint) uint {
+
+func floorp2(val int) uint {
 	val |= val >> 1
 	val |= val >> 2
 	val |= val >> 4
 	val |= val >> 8
 	val |= val >> 16
-	return val - (val >> 1)
+	return uint(val - (val >> 1))
+}
+
+func flatten(data [][]float64) []float64 {
+	flat := make([]float64, len(data)*len(data))
+	offset := 0
+	for _, row := range data {
+		copy(flat[offset:offset+len(row)], row)
+		offset += len(row)
+	}
+	return flat
 }
 
 func median(data [][]float64) float64 {
-	return 0.5 * (mediansel(data, len(data)/2-1) + mediansel(data, len(data)/2))
+	flat := flatten(data)
+	if len(flat)%2 == 1 {
+		return mediansel(flat, len(flat)/2)
+	} else {
+		return 0.5 * (mediansel(flat, len(flat)/2-1) + mediansel(flat, len(flat)/2))
+	}
+
 }
 
-func mediansel(list [][]float64, idx int) float64 {
+func mediansel(list []float64, idx int) float64 {
 	r := rand.Intn(len(list))
-	c := rand.Intn(len(list[0]))
 	var (
 		low    []float64
 		high   []float64
 		pivots []float64
 	)
-
-	pivot := list[r][c]
+	pivot := list[r]
 	for i := 0; i < len(list); i++ {
-		for j := 0; j < len(list[0]); j++ {
-			if list[i][j] < pivot {
-				low = append(low, list[i][j])
-			} else if list[i][j] == pivot {
-				pivots = append(pivots, list[i][j])
-			} else {
-				high = append(high, list[i][j])
-			}
+		if list[i] < pivot {
+			low = append(low, list[i])
+		} else if list[i] == pivot {
+			pivots = append(pivots, list[i])
+		} else {
+			high = append(high, list[i])
 		}
 	}
 	if idx < len(low) {
@@ -223,5 +246,13 @@ func mediansel(list [][]float64, idx int) float64 {
 	} else {
 		return mediansel(high, idx-len(low)-len(pivots))
 	}
+}
 
+func getexcerpt(data [][]float64, width int) [][]float64 {
+	excerpt := make([][]float64, width)
+	for i := 0; i < width; i++ {
+		excerpt[i] = make([]float64, width)
+		copy(excerpt[i], data[i][:width])
+	}
+	return excerpt
 }

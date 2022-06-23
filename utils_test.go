@@ -3,6 +3,7 @@ package main
 import (
 	"math"
 	"math/rand"
+	"reflect"
 	"testing"
 )
 
@@ -83,62 +84,6 @@ func TestDWT2d(t *testing.T) {
 	}
 }
 
-func BenchmarkDWT2d(b *testing.B) {
-	data := make([][]float64, 1024)
-	for i := 0; i < 1024; i++ {
-		data[i] = make([]float64, 1024)
-		for j := 0; j < 1024; j++ {
-			data[i][j] = rand.Float64()
-		}
-	}
-	for i := 0; i < b.N; i++ {
-		DWT2d(data, 2)
-	}
-}
-func BenchmarkDWT2d_c(b *testing.B) {
-	data := make([][]float64, 1024)
-	for i := 0; i < 1024; i++ {
-		data[i] = make([]float64, 1024)
-		for j := 0; j < 1024; j++ {
-			data[i][j] = rand.Float64()
-		}
-	}
-	for i := 0; i < b.N; i++ {
-		DWT2d(data, 2)
-	}
-}
-
-func Test_floorp2(t *testing.T) {
-	tests := []struct {
-		name string
-		val  uint
-		want uint
-	}{
-		{
-			name: "1234",
-			val:  1234,
-			want: 1024,
-		},
-		{
-			name: "32",
-			val:  32,
-			want: 32,
-		},
-		{
-			name: "9999",
-			val:  9999,
-			want: 8192,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := floorp2(tt.val); got != tt.want {
-				t.Errorf("floorp2() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func Test_iDWT1d(t *testing.T) {
 	tests := []struct {
 		name string
@@ -202,6 +147,149 @@ func Test_iDWT2d(t *testing.T) {
 						break outer
 					}
 				}
+			}
+		})
+	}
+}
+
+func BenchmarkDWT2d(b *testing.B) {
+	data := make([][]float64, 1024)
+	for i := 0; i < 1024; i++ {
+		data[i] = make([]float64, 1024)
+		for j := 0; j < 1024; j++ {
+			data[i][j] = rand.Float64()
+		}
+	}
+	for i := 0; i < b.N; i++ {
+		DWT2d(data, 2)
+	}
+}
+
+func BenchmarkDWT2d_c(b *testing.B) {
+	data := make([][]float64, 1024)
+	for i := 0; i < 1024; i++ {
+		data[i] = make([]float64, 1024)
+		for j := 0; j < 1024; j++ {
+			data[i][j] = rand.Float64()
+		}
+	}
+	for i := 0; i < b.N; i++ {
+		DWT2d(data, 2)
+	}
+}
+
+func Test_floorp2(t *testing.T) {
+	tests := []struct {
+		name string
+		val  int
+		want uint
+	}{
+		{
+			name: "1234",
+			val:  1234,
+			want: 1024,
+		},
+		{
+			name: "32",
+			val:  32,
+			want: 32,
+		},
+		{
+			name: "9999",
+			val:  9999,
+			want: 8192,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := floorp2(tt.val); got != tt.want {
+				t.Errorf("floorp2() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_flatten(t *testing.T) {
+	tests := []struct {
+		name string
+		val  [][]float64
+		want []float64
+	}{
+		{
+			name: "2×2",
+			val:  [][]float64{{1., 2.}, {3., 4.}},
+			want: []float64{1., 2., 3., 4.},
+		},
+		{
+			name: "3×3",
+			val:  [][]float64{{1., 2., 3.}, {4., 5., 6.}, {7., 8., 9.}},
+			want: []float64{1., 2., 3., 4., 5., 6., 7., 8., 9.},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := flatten(tt.val); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("flatten() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_median(t *testing.T) {
+	tests := []struct {
+		name string
+		val  [][]float64
+		want float64
+	}{
+		{
+			name: "leftmost square even",
+			val:  [][]float64{{8., 2., 3., 4.}, {5., 6., 7., 1.}, {9., 10., 11., 12.}, {13., 14., 15., 16.}},
+			want: 8.5,
+		},
+		{
+			name: "leftmost square odd",
+			val:  [][]float64{{5., 2., 3.}, {4., 1., 6.}, {7., 8., 9.}},
+			want: 5.0,
+		},
+		{
+			name: "rightmost jagged odd",
+			val:  [][]float64{{1., 2., 3., 4.}, {9.}, {6., 7., 8., 5.}},
+			want: 5.,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := median(tt.val); got != tt.want {
+				t.Errorf("median() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_eraselevel(t *testing.T) {
+	tests := []struct {
+		name  string
+		val   [][]float64
+		want  [][]float64
+		level int
+	}{
+		{
+			name:  "level1_4×4",
+			val:   [][]float64{{8., 2., 3., 4.}, {5., 6., 7., 1.}, {9., 10., 11., 12.}, {13., 14., 15., 16.}},
+			want:  [][]float64{{0., 0., 3., 4.}, {0., 0., 7., 1.}, {9., 10., 11., 12.}, {13., 14., 15., 16.}},
+			level: 1,
+		},
+		{
+			name:  "level2_4×4",
+			val:   [][]float64{{8., 2., 3., 4.}, {5., 6., 7., 1.}, {9., 10., 11., 12.}, {13., 14., 15., 16.}},
+			want:  [][]float64{{0., 2., 3., 4.}, {5., 6., 7., 1.}, {9., 10., 11., 12.}, {13., 14., 15., 16.}},
+			level: 2,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if eraselevel(tt.val, tt.level); !reflect.DeepEqual(tt.val, tt.want) {
+				t.Errorf("erase() = %v, want %v", tt.val, tt.want)
 			}
 		})
 	}
