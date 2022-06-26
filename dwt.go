@@ -3,7 +3,6 @@ package main
 import (
 	"math/bits"
 	"sort"
-	"sync"
 )
 
 //Коэффициенты вейвлетного преобразования Хаара
@@ -13,48 +12,6 @@ const (
 	s0 = 0.5
 	s1 = 0.5
 )
-
-type Data struct {
-	mu   sync.RWMutex
-	data [][]float64
-}
-
-func (d *Data) GetSlice(n int, axis bool) []float64 {
-	d.mu.RLock()
-	defer d.mu.RUnlock()
-	sl := make([]float64, len(d.data))
-	if !axis {
-		copy(sl, d.data[n])
-	} else {
-		for i := 0; i < len(d.data[0]); i++ {
-			sl[i] = d.data[i][n]
-		}
-	}
-	return sl
-
-}
-func (d *Data) PutSlice(data []float64, n int, axis bool) {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-	if !axis {
-		copy(d.data[n], data)
-	} else {
-		for i := 0; i < len(d.data[0]); i++ {
-			d.data[i][n] = data[i]
-		}
-	}
-}
-func NewData(data [][]float64) *Data {
-	d := Data{
-		mu:   sync.RWMutex{},
-		data: make([][]float64, len(data)),
-	}
-	for i := 0; i < len(data); i++ {
-		d.data[i] = make([]float64, len(data[i]))
-		copy(d.data[i], data[i])
-	}
-	return &d
-}
 
 //Прямое вейвлетное пробразование Хаара для вектора
 func DWT1d(data []float64) {
@@ -66,46 +23,6 @@ func DWT1d(data []float64) {
 		temp[i+half] = w0*data[k] + w1*data[k+1]
 	}
 	copy(data, temp)
-}
-
-func Dwt2dC(data [][]float64, level int) {
-	var (
-		rows, cols int
-	)
-	wg := sync.WaitGroup{}
-	rows = len(data)
-	cols = len(data[0])
-	d := NewData(data)
-	for k := 0; k < level; k++ {
-		curlvl := 1 << k
-		curcols := cols / curlvl
-		currows := rows / curlvl
-		for i := 0; i < currows; i++ {
-			wg.Add(1)
-			r := i
-			go func() {
-				row := make([]float64, curcols)
-				defer wg.Done()
-				copy(row, d.GetSlice(r, false))
-				DWT1d(row)
-				d.PutSlice(row, r, false)
-			}()
-		}
-		wg.Wait()
-
-		for j := 0; j < curcols; j++ {
-			col := make([]float64, currows)
-			wg.Add(1)
-			c := j
-			go func() {
-				defer wg.Done()
-				col = d.GetSlice(c, true)
-				DWT1d(col)
-				d.PutSlice(col, c, true)
-			}()
-		}
-		wg.Wait()
-	}
 }
 
 //Прямое вейвлетное пробразование Хаара для 2D-матрицы, level - коэффициент сжатия, матрица сжимается в 2^level раз

@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"golang.org/x/image/draw"
 	"image"
 	"image/png"
@@ -55,10 +54,10 @@ func (i *Imagehash) Whash(filename string, hashsize int) error {
 	DWT2d(data, level)
 	eraselevel(data, level)
 	IDWT2d(data, level)
-	DWT2d(data, hashlevel)
+	DWT2d(data, level-hashlevel)
 	excerpt := getexcerpt(data, hashsize)
 	med := median(excerpt)
-	i.hash = make([]byte, hashsize*2)
+	i.hash = make([]byte, hashsize*hashsize/8)
 	ctr := 0
 	offset := 0
 	var acc byte
@@ -77,11 +76,6 @@ func (i *Imagehash) Whash(filename string, hashsize int) error {
 		}
 	}
 	return nil
-}
-func main() {
-	i := Imagehash{}
-	i.Whash("e:\\rust.png", 16)
-	fmt.Println(i)
 }
 
 func grayscale(filename string) ([][]float64, error) {
@@ -108,7 +102,7 @@ func grayscale(filename string) ([][]float64, error) {
 			pixel := res.At(x, y)
 			r, g, b, _ := pixel.RGBA()
 			l := 0.299*float64(r) + 0.587*float64(g) + 0.114*float64(b)
-			data[y][x] = l / 65536.0
+			data[y][x] = l / 65535.0
 		}
 	}
 	return data, nil

@@ -67,41 +67,53 @@ func TestImagehash_String(t *testing.T) {
 
 func TestImagehash_Whash(t *testing.T) {
 	tests := []struct {
-		name  string
-		file  string
-		level int
-		whash string
+		name     string
+		file     string
+		level    int
+		whash    string
+		distance int
 	}{
 		{
-			name:  "lenna.png_16×16 bits",
-			file:  "lenna.png",
-			level: 16,
-			whash: "cfbccfbc43f847e947fb5e7348e341e7414741c741cf40cf40ca40fe40f441f0",
+			name:     "lenna.png_16×16 bits",
+			file:     "lenna.png",
+			level:    16,
+			distance: 5,
+			whash:    "cfbccfbc43f847e947fb5e7348e341e7414741c741cf40cf40ca40fe40f441f0",
 		},
 		{
-			name:  "lenna.png_8×8 bits",
-			file:  "lenna.png",
-			level: 8,
-			whash: "be98bd890b0b8f8c",
+			name:     "lenna.png_8×8 bits",
+			file:     "lenna.png",
+			level:    8,
+			distance: 3,
+			whash:    "be98bd890b0b8f8c",
 		},
 		{
-			name:  "rust.png_16×16 bits",
-			file:  "rust.png",
-			level: 16,
-			whash: "fe1ffe07f607c603800180018001800180038031c0ff81ffe1ffe1ffffffffff",
+			name:     "rust.png_16×16 bits",
+			file:     "rust.png",
+			level:    16,
+			distance: 5,
+			whash:    "fe1ffe07f607c603800180018001800180038031c0ff81ffe1ffe1ffffffffff",
 		},
 		{
-			name:  "rust.png_8×8 bits",
-			file:  "rust.png",
-			level: 8,
-			whash: "f3b10101818f8fff",
+			name:     "rust.png_8×8 bits",
+			file:     "rust.png",
+			level:    8,
+			distance: 3,
+			whash:    "f3b10101818f8fff",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			i := &Imagehash{}
-			if i.Whash(tt.file, tt.level); i.String() != tt.whash {
-				t.Errorf("Whash() = %v, wantErr %v", i.String(), tt.whash)
+			i := Imagehash{}
+			j := &Imagehash{}
+			_ = j.FromString(tt.whash)
+			err := i.Whash(tt.file, tt.level)
+			if err != nil {
+				t.Fatal("Unexpected error:", err)
+			}
+			d, _ := i.Distance(*j)
+			if d > tt.distance {
+				t.Errorf("Whash() = %v, wantErr %v distance %v", i.String(), tt.whash, d)
 			}
 		})
 	}
