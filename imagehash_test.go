@@ -66,49 +66,42 @@ func TestImagehash_String(t *testing.T) {
 }
 
 func TestImagehash_Whash(t *testing.T) {
-	type fields struct {
-		hash []byte
-	}
-	type args struct {
-		data  [][]float64
+	tests := []struct {
+		name  string
+		file  string
 		level int
-	}
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		wantErr bool
+		whash string
 	}{
-		// TODO: Add test cases.
+		{
+			name:  "lenna.png_16×16 bits",
+			file:  "lenna.png",
+			level: 16,
+			whash: "cfbccfbc43f847e947fb5e7348e341e7414741c741cf40cf40ca40fe40f441f0",
+		},
+		{
+			name:  "lenna.png_8×8 bits",
+			file:  "lenna.png",
+			level: 8,
+			whash: "be98bd890b0b8f8c",
+		},
+		{
+			name:  "rust.png_16×16 bits",
+			file:  "rust.png",
+			level: 16,
+			whash: "fe1ffe07f607c603800180018001800180038031c0ff81ffe1ffe1ffffffffff",
+		},
+		{
+			name:  "rust.png_8×8 bits",
+			file:  "rust.png",
+			level: 8,
+			whash: "f3b10101818f8fff",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			i := &Imagehash{
-				hash: tt.fields.hash,
-			}
-			if err := i.Whash(tt.args.data, tt.args.level); (err != nil) != tt.wantErr {
-				t.Errorf("Whash() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func TestNewHash(t *testing.T) {
-	type args struct {
-		filename string
-		size     uint
-	}
-	tests := []struct {
-		name string
-		args args
-		want Imagehash
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := NewHash(tt.args.filename, tt.args.size); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NewHash() = %v, want %v", got, tt.want)
+			i := &Imagehash{}
+			if i.Whash(tt.file, tt.level); i.String() != tt.whash {
+				t.Errorf("Whash() = %v, wantErr %v", i.String(), tt.whash)
 			}
 		})
 	}

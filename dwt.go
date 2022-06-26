@@ -1,13 +1,12 @@
 package main
 
 import (
-	"fmt"
 	"math/bits"
-	"math/rand"
+	"sort"
 	"sync"
-	"time"
 )
 
+//Коэффициенты вейвлетного преобразования Хаара
 const (
 	w0 = 0.5
 	w1 = -0.5
@@ -57,6 +56,7 @@ func NewData(data [][]float64) *Data {
 	return &d
 }
 
+//Прямое вейвлетное пробразование Хаара для вектора
 func DWT1d(data []float64) {
 	temp := make([]float64, len(data))
 	half := len(data) >> 1
@@ -80,7 +80,6 @@ func Dwt2dC(data [][]float64, level int) {
 		curlvl := 1 << k
 		curcols := cols / curlvl
 		currows := rows / curlvl
-		start := time.Now()
 		for i := 0; i < currows; i++ {
 			wg.Add(1)
 			r := i
@@ -93,8 +92,7 @@ func Dwt2dC(data [][]float64, level int) {
 			}()
 		}
 		wg.Wait()
-		fmt.Println("time to transform concurrent rowwise", time.Since(start))
-		start = time.Now()
+
 		for j := 0; j < curcols; j++ {
 			col := make([]float64, currows)
 			wg.Add(1)
@@ -107,10 +105,10 @@ func Dwt2dC(data [][]float64, level int) {
 			}()
 		}
 		wg.Wait()
-		fmt.Println("time to transform concurrent columnwise", time.Since(start))
 	}
 }
 
+//Прямое вейвлетное пробразование Хаара для 2D-матрицы, level - коэффициент сжатия, матрица сжимается в 2^level раз
 func DWT2d(data [][]float64, level int) {
 	var (
 		rows, cols int
@@ -140,6 +138,7 @@ func DWT2d(data [][]float64, level int) {
 	}
 }
 
+//Обратное вейвлетное пробразование Хаара для вектора
 func iDWT1d(data []float64) {
 	temp := make([]float64, len(data))
 	half := len(data) >> 1
@@ -151,6 +150,7 @@ func iDWT1d(data []float64) {
 	copy(data, temp)
 }
 
+//Обратное вейвлетное пробразование Хаара для вектора
 func IDWT2d(data [][]float64, level int) {
 	var (
 		rows, cols int
@@ -180,6 +180,7 @@ func IDWT2d(data [][]float64, level int) {
 	}
 }
 
+//Удаление аппроксимации, сохраняются только коэффициенты восстановления
 func eraselevel(data [][]float64, level int) {
 	maxlvl := bits.Len(floorp2(len(data))) - 1
 	if level > maxlvl {
@@ -193,6 +194,7 @@ func eraselevel(data [][]float64, level int) {
 	}
 }
 
+//Расчет N,  <= val, являющегося степенью двойки
 func floorp2(val int) uint {
 	val |= val >> 1
 	val |= val >> 2
@@ -202,6 +204,7 @@ func floorp2(val int) uint {
 	return uint(val - (val >> 1))
 }
 
+//Преобразование произвольной матрицы к вектору
 func flatten(data [][]float64) []float64 {
 	flat := make([]float64, len(data)*len(data))
 	offset := 0
@@ -212,42 +215,46 @@ func flatten(data [][]float64) []float64 {
 	return flat
 }
 
+//Расчет медианы вектора за линейное время
 func median(data [][]float64) float64 {
 	flat := flatten(data)
+	sort.Float64s(flat)
 	if len(flat)%2 == 1 {
-		return mediansel(flat, len(flat)/2)
+		return flat[len(flat)/2]
 	} else {
-		return 0.5 * (mediansel(flat, len(flat)/2-1) + mediansel(flat, len(flat)/2))
+		return 0.5 * (flat[len(flat)/2-1] + flat[len(flat)/2])
 	}
 
 }
 
-func mediansel(list []float64, idx int) float64 {
-	r := rand.Intn(len(list))
-	var (
-		low    []float64
-		high   []float64
-		pivots []float64
-	)
-	pivot := list[r]
-	for i := 0; i < len(list); i++ {
-		if list[i] < pivot {
-			low = append(low, list[i])
-		} else if list[i] == pivot {
-			pivots = append(pivots, list[i])
-		} else {
-			high = append(high, list[i])
-		}
-	}
-	if idx < len(low) {
-		return mediansel(low, idx)
-	} else if idx < len(low)+len(pivots) {
-		return pivots[0]
-	} else {
-		return mediansel(high, idx-len(low)-len(pivots))
-	}
-}
+//Вспомогательная функция для расчета медианы
+//func _mediansel(list []float64, idx int) float64 {
+//	r := rand.Intn(len(list))
+//	var (
+//		low    []float64
+//		high   []float64
+//		pivots []float64
+//	)
+//	pivot := list[r]
+//	for i := 0; i < len(list); i++ {
+//		if list[i] < pivot {
+//			low = append(low, list[i])
+//		} else if list[i] == pivot {
+//			pivots = append(pivots, list[i])
+//		} else {
+//			high = append(high, list[i])
+//		}
+//	}
+//	if idx < len(low) {
+//		return _mediansel(low, idx)
+//	} else if idx < len(low)+len(pivots) {
+//		return pivots[0]
+//	} else {
+//		return _mediansel(high, idx-len(low)-len(pivots))
+//	}
+//}
 
+//Получение первого квадранта матрицы размерности width
 func getexcerpt(data [][]float64, width int) [][]float64 {
 	excerpt := make([][]float64, width)
 	for i := 0; i < width; i++ {
