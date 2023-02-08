@@ -101,6 +101,13 @@ func TestImagehash_Whash(t *testing.T) {
 			distance: 3,
 			whash:    "f3b10101818f8fff",
 		},
+		{
+			name:     "temp.png_256×256 bits",
+			file:     "temp.png",
+			level:    256,
+			distance: 3,
+			whash:    "f3b10101818f8fff",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -111,7 +118,10 @@ func TestImagehash_Whash(t *testing.T) {
 			if err != nil {
 				t.Fatal("Unexpected error:", err)
 			}
-			d, _ := i.Distance(*j)
+			d, err := i.Distance(*j)
+			if err != nil {
+				t.Fatal("wrong lenght:", err, i.String())
+			}
 			if d > tt.distance {
 				t.Errorf("Whash() = %v, wantErr %v distance %v", i.String(), tt.whash, d)
 			}
