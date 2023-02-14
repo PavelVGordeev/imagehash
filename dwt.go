@@ -5,91 +5,79 @@ import (
 	"sort"
 )
 
-//Коэффициенты вейвлетного преобразования Хаара
+// Коэффициенты вейвлетного преобразования Хаара
 const (
-	w0 = 0.5
-	w1 = -0.5
-	s0 = 0.5
-	s1 = 0.5
+	coeff1 = 0.5
+	coeff2 = -0.5
 )
 
-//Прямое вейвлетное пробразование Хаара для вектора
+// Прямое вейвлетное пробразование Хаара для вектора
 func DWT1d(data []float64) {
 	temp := make([]float64, len(data))
-	half := len(data) >> 1
+	half := len(data) / 2
 	for i := 0; i < half; i++ {
-		k := i << 1
-		temp[i] = s0*data[k] + s1*data[k+1]
-		temp[i+half] = w0*data[k] + w1*data[k+1]
+		k := i * 2
+		temp[i] = coeff1*data[k] + coeff1*data[k+1]
+		temp[i+half] = coeff1*data[k] + coeff2*data[k+1]
 	}
 	copy(data, temp)
 }
 
-//Прямое вейвлетное пробразование Хаара для 2D-матрицы, level - коэффициент сжатия, матрица сжимается в 2^level раз
+// Прямое вейвлетное пробразование Хаара для 2D-матрицы, level - коэффициент сжатия, матрица сжимается в 2^level раз
 func DWT2d(data [][]float64, level int) {
-	var (
-		rows, cols int
-	)
-	rows = len(data)
-	cols = len(data[0])
+	dims := len(data)
 	for k := 0; k < level; k++ {
 		curlvl := 1 << k
-		curcols := cols / curlvl
-		currows := rows / curlvl
-		row := make([]float64, curcols)
-		for i := 0; i < currows; i++ {
+		curdims := dims / curlvl
+		row := make([]float64, curdims)
+		for i := 0; i < curdims; i++ {
 			copy(row, data[i])
 			DWT1d(row)
 			copy(data[i], row)
 		}
-		col := make([]float64, currows)
-		for j := 0; j < curcols; j++ {
-			for i := 0; i < currows; i++ {
+		col := make([]float64, curdims)
+		for j := 0; j < curdims; j++ {
+			for i := 0; i < curdims; i++ {
 				col[i] = data[i][j]
 			}
 			DWT1d(col)
-			for i := 0; i < currows; i++ {
+			for i := 0; i < curdims; i++ {
 				data[i][j] = col[i]
 			}
 		}
 	}
 }
 
-//Обратное вейвлетное пробразование Хаара для вектора
+// Обратное вейвлетное пробразование Хаара для вектора
 func iDWT1d(data []float64) {
 	temp := make([]float64, len(data))
 	half := len(data) >> 1
 	for i := 0; i < half; i++ {
 		k := i << 1
-		temp[k] = (s0*data[i] + w0*data[i+half]) / w0
-		temp[k+1] = (s1*data[i] + w1*data[i+half]) / s0
+		temp[k] = (coeff1*data[i] + coeff1*data[i+half]) / coeff1
+		temp[k+1] = (coeff1*data[i] + coeff2*data[i+half]) / coeff1
 	}
 	copy(data, temp)
 }
 
-//Обратное вейвлетное пробразование Хаара для вектора
+// Обратное вейвлетное пробразование Хаара для вектора
 func IDWT2d(data [][]float64, level int) {
-	var (
-		rows, cols int
-	)
-	rows = len(data)
-	cols = len(data[0])
+	dims := len(data)
 	for k := level - 1; k >= 0; k-- {
 		curlvl := 1 << k
-		curcols := cols / curlvl
-		currows := rows / curlvl
-		col := make([]float64, currows)
-		for j := 0; j < curcols; j++ {
-			for i := 0; i < currows; i++ {
+		curdims := dims / curlvl
+		col := make([]float64, curdims)
+		for j := 0; j < curdims; j++ {
+			for i := 0; i < curdims; i++ {
 				col[i] = data[i][j]
 			}
 			iDWT1d(col)
-			for i := 0; i < currows; i++ {
+			for i := 0; i < curdims; i++ {
 				data[i][j] = col[i]
 			}
 		}
-		row := make([]float64, curcols)
-		for i := 0; i < currows; i++ {
+		row := make([]float64, curdims)
+		for i := 0; i < curdims; i++ {
 			copy(row, data[i])
 			iDWT1d(row)
 			copy(data[i], row)
@@ -97,7 +85,7 @@ func IDWT2d(data [][]float64, level int) {
 	}
 }
 
-//Удаление аппроксимации, сохраняются только коэффициенты восстановления
+// Удаление аппроксимации, сохраняются только коэффициенты восстановления
 func eraselevel(data [][]float64, level int) {
 	maxlvl := bits.Len(floorp2(len(data))) - 1
 	if level > maxlvl {
@@ -111,7 +99,7 @@ func eraselevel(data [][]float64, level int) {
 	}
 }
 
-//Расчет N,  <= val, являющегося степенью двойки
+// Расчет N,  <= val, являющегося степенью двойки
 func floorp2(val int) uint {
 	val |= val >> 1
 	val |= val >> 2
@@ -121,7 +109,6 @@ func floorp2(val int) uint {
 	return uint(val - (val >> 1))
 }
 
-//Преобразование произвольной матрицы к вектору
 func flatten(data [][]float64) []float64 {
 	flat := make([]float64, len(data)*len(data))
 	offset := 0
@@ -132,7 +119,6 @@ func flatten(data [][]float64) []float64 {
 	return flat
 }
 
-//Расчет медианы вектора за линейное время
 func median(data [][]float64) float64 {
 	flat := flatten(data)
 	sort.Float64s(flat)
@@ -171,7 +157,7 @@ func median(data [][]float64) float64 {
 //	}
 //}
 
-//Получение первого квадранта матрицы размерности width
+// Получение первого квадранта матрицы размерности width
 func getexcerpt(data [][]float64, width int) [][]float64 {
 	excerpt := make([][]float64, width)
 	for i := 0; i < width; i++ {

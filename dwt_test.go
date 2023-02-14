@@ -1,10 +1,10 @@
 package main
 
 import (
-	"math"
 	"math/rand"
-	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 const eps = 1e-5
@@ -15,7 +15,7 @@ func TestDWT1d(t *testing.T) {
 		data []float64
 		want []float64
 	}{
-		{name: "simple vector",
+		{name: "vector",
 			data: []float64{3.4, 8.4, 6.5, 9.9, 7.6, 9.3, 6.6, 5.2},
 			want: []float64{5.9, 8.2, 8.45, 5.9, -2.5, -1.7, -0.85, 0.7},
 		},
@@ -23,12 +23,26 @@ func TestDWT1d(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			DWT1d(tt.data)
-			for i := range tt.data {
-				if math.Abs(tt.data[i]-tt.want[i]) > eps {
-					t.Errorf("DWT1d() = %v, want %v", tt.data, tt.want)
-					break
-				}
-			}
+			assert.InDeltaSlice(t, tt.want, tt.data, eps)
+		})
+	}
+}
+
+func Test_iDWT1d(t *testing.T) {
+	tests := []struct {
+		name string
+		data []float64
+		want []float64
+	}{
+		{name: "vector inverse",
+			data: []float64{5.9, 8.2, 8.45, 5.9, -2.5, -1.7, -0.85, 0.7},
+			want: []float64{3.4, 8.4, 6.5, 9.9, 7.6, 9.3, 6.6, 5.2},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			iDWT1d(tt.data)
+			assert.InDeltaSlice(t, tt.want, tt.data, eps)
 		})
 	}
 }
@@ -47,23 +61,31 @@ func TestDWT2d(t *testing.T) {
 		want  [][]float64
 		level int
 	}{
-		{name: "simple matrix level1",
+		{name: "matrix level1",
 			data: [][]float64{
-				{3.4, 8.4, 6.5, 9.9}, {7.6, 9.3, 6.6, 5.2},
-				{5.1, 5.9, 2.3, 3.7}, {8.3, 0.9, 3.6, 0.2}},
+				{3.4, 8.4, 6.5, 9.9},
+				{7.6, 9.3, 6.6, 5.2},
+				{5.1, 5.9, 2.3, 3.7},
+				{8.3, 0.9, 3.6, 0.2}},
 			want: [][]float64{
-				{7.175, 7.05, -1.675, -0.5}, {5.05, 2.45, 1.65, 0.5},
-				{-1.275, 1.15, -0.825, -1.2}, {0.45, 0.55, -2.05, -1.2},
+				{7.175, 7.05, -1.675, -0.5},
+				{5.05, 2.45, 1.65, 0.5},
+				{-1.275, 1.15, -0.825, -1.2},
+				{0.45, 0.55, -2.05, -1.2},
 			},
 			level: 1,
 		},
-		{name: "simple matrix level2",
+		{name: "matrix level2",
 			data: [][]float64{
-				{3.4, 8.4, 6.5, 9.9}, {7.6, 9.3, 6.6, 5.2},
-				{5.1, 5.9, 2.3, 3.7}, {8.3, 0.9, 3.6, 0.2}},
+				{3.4, 8.4, 6.5, 9.9},
+				{7.6, 9.3, 6.6, 5.2},
+				{5.1, 5.9, 2.3, 3.7},
+				{8.3, 0.9, 3.6, 0.2}},
 			want: [][]float64{
-				{5.43125, 0.68125, -1.675, -0.5}, {1.68125, -0.61875, 1.65, 0.5},
-				{-1.275, 1.15, -0.825, -1.2}, {0.45, 0.55, -2.05, -1.2},
+				{5.43125, 0.68125, -1.675, -0.5},
+				{1.68125, -0.61875, 1.65, 0.5},
+				{-1.275, 1.15, -0.825, -1.2},
+				{0.45, 0.55, -2.05, -1.2},
 			},
 			level: 2,
 		},
@@ -71,38 +93,8 @@ func TestDWT2d(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			DWT2d(tt.data, tt.level)
-		outer:
 			for i := range tt.data {
-				for j := range tt.data[0] {
-					if math.Abs(tt.data[i][j]-tt.want[i][j]) > eps {
-						t.Errorf("DWT2d() = %v, want %v", tt.data, tt.want)
-						break outer
-					}
-				}
-			}
-		})
-	}
-}
-
-func Test_iDWT1d(t *testing.T) {
-	tests := []struct {
-		name string
-		data []float64
-		want []float64
-	}{
-		{name: "simple vector",
-			want: []float64{4, 0.5, 0.75, 0.2, 2, 0.6},
-			data: []float64{2.25, 0.475, 1.3, 1.75, 0.275, 0.7},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			iDWT1d(tt.data)
-			for i := range tt.data {
-				if math.Abs(tt.data[i]-tt.want[i]) > eps {
-					t.Errorf("iDWT1d() = %v, want %v", tt.data, tt.want)
-					break
-				}
+				assert.InDeltaSlice(t, tt.want[i], tt.data[i], eps)
 			}
 		})
 	}
@@ -115,23 +107,31 @@ func Test_iDWT2d(t *testing.T) {
 		want  [][]float64
 		level int
 	}{
-		{name: "simple matrix level1",
+		{name: "matrix inverse level1",
 			want: [][]float64{
-				{4, 0.5, 0.75, 0.2}, {0.8, 3, 1.2, 1.4},
-				{0.7, 0.2, 0.1, 1}, {2, 2.5, 0.1, 0.9}},
+				{3.4, 8.4, 6.5, 9.9},
+				{7.6, 9.3, 6.6, 5.2},
+				{5.1, 5.9, 2.3, 3.7},
+				{8.3, 0.9, 3.6, 0.2}},
 			data: [][]float64{
-				{2.075, 0.8875, 0.325, 0.0875}, {1.35, 0.525, 0, -0.425},
-				{0.175, -0.4125, 1.425, 0.1875}, {-0.9, 0.025, 0.25, -0.025},
+				{7.175, 7.05, -1.675, -0.5},
+				{5.05, 2.45, 1.65, 0.5},
+				{-1.275, 1.15, -0.825, -1.2},
+				{0.45, 0.55, -2.05, -1.2},
 			},
 			level: 1,
 		},
-		{name: "simple matrix level2",
+		{name: "matrix inverse level2",
 			want: [][]float64{
-				{4, 0.5, 0.75, 0.2}, {0.8, 3, 1.2, 1.4},
-				{0.7, 0.2, 0.1, 1}, {2, 2.5, 0.1, 0.9}},
+				{3.4, 8.4, 6.5, 9.9},
+				{7.6, 9.3, 6.6, 5.2},
+				{5.1, 5.9, 2.3, 3.7},
+				{8.3, 0.9, 3.6, 0.2}},
 			data: [][]float64{
-				{1.209375, 0.503125, 0.325, 0.0875}, {0.271875, 0.090625, 0, -0.425},
-				{0.175, -0.4125, 1.425, 0.1875}, {-0.9, 0.025, 0.25, -0.025},
+				{5.43125, 0.68125, -1.675, -0.5},
+				{1.68125, -0.61875, 1.65, 0.5},
+				{-1.275, 1.15, -0.825, -1.2},
+				{0.45, 0.55, -2.05, -1.2},
 			},
 			level: 2,
 		},
@@ -139,14 +139,8 @@ func Test_iDWT2d(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			IDWT2d(tt.data, tt.level)
-		outer:
 			for i := range tt.data {
-				for j := range tt.data[0] {
-					if math.Abs(tt.data[i][j]-tt.want[i][j]) > eps {
-						t.Errorf("iDWT2d() = %v, want %v", tt.data, tt.want)
-						break outer
-					}
-				}
+				assert.InDeltaSlice(t, tt.want[i], tt.data[i], eps)
 			}
 		})
 	}
@@ -202,9 +196,7 @@ func Test_floorp2(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := floorp2(tt.val); got != tt.want {
-				t.Errorf("floorp2() = %v, want %v", got, tt.want)
-			}
+			assert.Equal(t, tt.want, floorp2(tt.val))
 		})
 	}
 }
@@ -217,20 +209,23 @@ func Test_flatten(t *testing.T) {
 	}{
 		{
 			name: "2×2",
-			val:  [][]float64{{1., 2.}, {3., 4.}},
+			val: [][]float64{
+				{1., 2.},
+				{3., 4.}},
 			want: []float64{1., 2., 3., 4.},
 		},
 		{
 			name: "3×3",
-			val:  [][]float64{{1., 2., 3.}, {4., 5., 6.}, {7., 8., 9.}},
+			val: [][]float64{
+				{1., 2., 3.},
+				{4., 5., 6.},
+				{7., 8., 9.}},
 			want: []float64{1., 2., 3., 4., 5., 6., 7., 8., 9.},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := flatten(tt.val); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("flatten() = %v, want %v", got, tt.want)
-			}
+			assert.Equal(t, tt.want, flatten(tt.val))
 		})
 	}
 }
@@ -243,25 +238,33 @@ func Test_median(t *testing.T) {
 	}{
 		{
 			name: "leftmost square even",
-			val:  [][]float64{{8., 2., 3., 4.}, {5., 6., 7., 1.}, {9., 10., 11., 12.}, {13., 14., 15., 16.}},
+			val: [][]float64{
+				{8., 2., 3., 4.},
+				{5., 6., 7., 1.},
+				{9., 10., 11., 12.},
+				{13., 14., 15., 16.}},
 			want: 8.5,
 		},
 		{
 			name: "leftmost square odd",
-			val:  [][]float64{{5., 2., 3.}, {4., 1., 6.}, {7., 8., 9.}},
+			val: [][]float64{
+				{5., 2., 3.},
+				{4., 1., 6.},
+				{7., 8., 9.}},
 			want: 5.0,
 		},
 		{
 			name: "rightmost jagged odd",
-			val:  [][]float64{{1., 2., 3., 4.}, {9.}, {6., 7., 8., 5.}},
+			val: [][]float64{
+				{1., 2., 3., 4.},
+				{9.},
+				{6., 7., 8., 5.}},
 			want: 5.,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := median(tt.val); got != tt.want {
-				t.Errorf("median() = %v, want %v", got, tt.want)
-			}
+			assert.Equal(t, tt.want, median(tt.val))
 		})
 	}
 }
@@ -274,23 +277,52 @@ func Test_eraselevel(t *testing.T) {
 		level int
 	}{
 		{
-			name:  "level1_4×4",
-			val:   [][]float64{{8., 2., 3., 4.}, {5., 6., 7., 1.}, {9., 10., 11., 12.}, {13., 14., 15., 16.}},
-			want:  [][]float64{{0., 0., 3., 4.}, {0., 0., 7., 1.}, {9., 10., 11., 12.}, {13., 14., 15., 16.}},
+			name: "level1_4×4",
+			val: [][]float64{
+				{8., 2., 3., 4.},
+				{5., 6., 7., 1.},
+				{9., 10., 11., 12.},
+				{13., 14., 15., 16.}},
+			want: [][]float64{
+				{0., 0., 3., 4.},
+				{0., 0., 7., 1.},
+				{9., 10., 11., 12.},
+				{13., 14., 15., 16.}},
 			level: 1,
 		},
 		{
-			name:  "level2_4×4",
-			val:   [][]float64{{8., 2., 3., 4.}, {5., 6., 7., 1.}, {9., 10., 11., 12.}, {13., 14., 15., 16.}},
-			want:  [][]float64{{0., 2., 3., 4.}, {5., 6., 7., 1.}, {9., 10., 11., 12.}, {13., 14., 15., 16.}},
+			name: "level2_4×4",
+			val: [][]float64{
+				{8., 2., 3., 4.},
+				{5., 6., 7., 1.},
+				{9., 10., 11., 12.},
+				{13., 14., 15., 16.}},
+			want: [][]float64{
+				{0., 2., 3., 4.},
+				{5., 6., 7., 1.},
+				{9., 10., 11., 12.},
+				{13., 14., 15., 16.}},
 			level: 2,
+		},
+		{
+			name: "level3_4×4 not erasing",
+			val: [][]float64{
+				{8., 2., 3., 4.},
+				{5., 6., 7., 1.},
+				{9., 10., 11., 12.},
+				{13., 14., 15., 16.}},
+			want: [][]float64{
+				{8., 2., 3., 4.},
+				{5., 6., 7., 1.},
+				{9., 10., 11., 12.},
+				{13., 14., 15., 16.}},
+			level: 3,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if eraselevel(tt.val, tt.level); !reflect.DeepEqual(tt.val, tt.want) {
-				t.Errorf("erase() = %v, want %v", tt.val, tt.want)
-			}
+			eraselevel(tt.val, tt.level)
+			assert.Equal(t, tt.want, tt.val)
 		})
 	}
 }

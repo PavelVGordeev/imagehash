@@ -3,18 +3,19 @@ package main
 import (
 	"encoding/hex"
 	"errors"
-	"golang.org/x/image/draw"
 	"image"
 	"image/png"
 	"math/bits"
 	"os"
+
+	"golang.org/x/image/draw"
 )
 
 type Imagehash struct {
 	hash []byte
 }
 
-func (i Imagehash) String() string {
+func (i *Imagehash) String() string {
 	return hex.EncodeToString(i.hash)
 }
 
@@ -31,8 +32,8 @@ func (i *Imagehash) FromString(hashstr string) error {
 	return nil
 }
 
-//Поиск расстояния Хэмминга для двух хэшей идентичной длины
-func (i Imagehash) Distance(other Imagehash) (int, error) {
+// Поиск расстояния Хэмминга для двух хэшей идентичной длины
+func (i *Imagehash) Distance(other Imagehash) (int, error) {
 	hamming := 0
 	if len(i.hash) != len(other.hash) {
 		return 0, errors.New("hashes have unequal sizes")
