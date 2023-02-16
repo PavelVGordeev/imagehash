@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/hex"
 	"errors"
+	"image"
 	"math/bits"
 )
 
@@ -47,8 +48,8 @@ func (i *Imagehash) Distance(other Imagehash) (int, error) {
 	return hamming, nil
 }
 
-func (i *Imagehash) Whash(image Vectorizer, hashsize uint) error {
-	data, err := image.Vectorize()
+func (i *Imagehash) Whash(image image.Image, hashsize uint) error {
+	data, err := grayscale(image)
 	if err != nil {
 		return err
 	}

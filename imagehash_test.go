@@ -1,6 +1,9 @@
 package main
 
 import (
+	"image"
+	"image/png"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -122,7 +125,15 @@ func TestImagehash_Whash(t *testing.T) {
 			j := Imagehash{}
 			err := j.FromString(tt.whash)
 			assert.NoError(t, err)
-			err = i.Whash(Image{path: tt.file}, tt.level)
+			var img image.Image
+			func() {
+				file, err := os.Open(tt.file)
+				assert.NoError(t, err)
+				img, err = png.Decode(file)
+				assert.NoError(t, err)
+				defer file.Close()
+			}()
+			err = i.Whash(img, tt.level)
 			if !tt.wantErr(t, err) {
 				t.Fatalf("Whash() error = %v", err)
 			}
