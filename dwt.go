@@ -4,13 +4,11 @@ import (
 	"sort"
 )
 
-// Коэффициенты вейвлетного преобразования Хаара
 const (
 	coeff1 = 0.5
 	coeff2 = -0.5
 )
 
-// Прямое вейвлетное пробразование Хаара для вектора
 func DWT1d(data []float64) {
 	temp := make([]float64, len(data))
 	half := len(data) / 2
@@ -22,7 +20,6 @@ func DWT1d(data []float64) {
 	copy(data, temp)
 }
 
-// Прямое вейвлетное пробразование Хаара для 2D-матрицы, level - коэффициент сжатия, матрица сжимается в 2^level раз
 func DWT2d(data [][]float64, level int) {
 	dims := len(data)
 	for k := 0; k < level; k++ {
@@ -47,7 +44,6 @@ func DWT2d(data [][]float64, level int) {
 	}
 }
 
-// Обратное вейвлетное пробразование Хаара для вектора
 func iDWT1d(data []float64) {
 	temp := make([]float64, len(data))
 	half := len(data) / 2
@@ -59,7 +55,6 @@ func iDWT1d(data []float64) {
 	copy(data, temp)
 }
 
-// Обратное вейвлетное пробразование Хаара для вектора
 func IDWT2d(data [][]float64, level int) {
 	dims := len(data)
 	for k := level - 1; k >= 0; k-- {
@@ -84,7 +79,6 @@ func IDWT2d(data [][]float64, level int) {
 	}
 }
 
-// Расчет N,  <= val, являющегося степенью двойки
 func floorp2(val int) uint {
 	val |= val >> 1
 	val |= val >> 2
@@ -114,7 +108,6 @@ func median(data [][]float64) float64 {
 	}
 }
 
-// Получение подматрицы размерности width
 func getexcerpt(data [][]float64, width uint) [][]float64 {
 	excerpt := make([][]float64, width)
 	for i := 0; i < int(width); i++ {
