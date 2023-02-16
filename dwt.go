@@ -1,7 +1,6 @@
 package main
 
 import (
-	"math/bits"
 	"sort"
 )
 
@@ -51,9 +50,9 @@ func DWT2d(data [][]float64, level int) {
 // Обратное вейвлетное пробразование Хаара для вектора
 func iDWT1d(data []float64) {
 	temp := make([]float64, len(data))
-	half := len(data) >> 1
+	half := len(data) / 2
 	for i := 0; i < half; i++ {
-		k := i << 1
+		k := i * 2
 		temp[k] = (coeff1*data[i] + coeff1*data[i+half]) / coeff1
 		temp[k+1] = (coeff1*data[i] + coeff2*data[i+half]) / coeff1
 	}
@@ -81,20 +80,6 @@ func IDWT2d(data [][]float64, level int) {
 			copy(row, data[i])
 			iDWT1d(row)
 			copy(data[i], row)
-		}
-	}
-}
-
-// Удаление аппроксимации, сохраняются только коэффициенты восстановления
-func eraselevel(data [][]float64, level int) {
-	maxlvl := bits.Len(floorp2(len(data))) - 1
-	if level > maxlvl {
-		return
-	}
-	eraseidx := 1 << (maxlvl - level)
-	for i := 0; i < eraseidx; i++ {
-		for j := 0; j < eraseidx; j++ {
-			data[i][j] = 0.0
 		}
 	}
 }
@@ -127,42 +112,21 @@ func median(data [][]float64) float64 {
 	} else {
 		return 0.5 * (flat[len(flat)/2-1] + flat[len(flat)/2])
 	}
-
 }
 
-//Вспомогательная функция для расчета медианы
-//func _mediansel(list []float64, idx int) float64 {
-//	r := rand.Intn(len(list))
-//	var (
-//		low    []float64
-//		high   []float64
-//		pivots []float64
-//	)
-//	pivot := list[r]
-//	for i := 0; i < len(list); i++ {
-//		if list[i] < pivot {
-//			low = append(low, list[i])
-//		} else if list[i] == pivot {
-//			pivots = append(pivots, list[i])
-//		} else {
-//			high = append(high, list[i])
-//		}
-//	}
-//	if idx < len(low) {
-//		return _mediansel(low, idx)
-//	} else if idx < len(low)+len(pivots) {
-//		return pivots[0]
-//	} else {
-//		return _mediansel(high, idx-len(low)-len(pivots))
-//	}
-//}
-
-// Получение первого квадранта матрицы размерности width
-func getexcerpt(data [][]float64, width int) [][]float64 {
+// Получение подматрицы размерности width
+func getexcerpt(data [][]float64, width uint) [][]float64 {
 	excerpt := make([][]float64, width)
-	for i := 0; i < width; i++ {
+	for i := 0; i < int(width); i++ {
 		excerpt[i] = make([]float64, width)
 		copy(excerpt[i], data[i][:width])
 	}
 	return excerpt
+}
+
+func min(x, y int) int {
+	if x < y {
+		return x
+	}
+	return y
 }

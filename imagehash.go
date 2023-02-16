@@ -3,16 +3,19 @@ package main
 import (
 	"encoding/hex"
 	"errors"
-	"image"
-	"image/png"
 	"math/bits"
-	"os"
+)
 
-	"golang.org/x/image/draw"
+var (
+	ErrBadHashSize   = errors.New("incompatible hashsize")
+	ErrUnequalHashes = errors.New("hashes have unequal sizes")
 )
 
 type Imagehash struct {
 	hash []byte
+}
+type Vectorizer interface {
+	Vectorize() ([][]float64, error)
 }
 
 func (i *Imagehash) String() string {
@@ -36,7 +39,7 @@ func (i *Imagehash) FromString(hashstr string) error {
 func (i *Imagehash) Distance(other Imagehash) (int, error) {
 	hamming := 0
 	if len(i.hash) != len(other.hash) {
-		return 0, errors.New("hashes have unequal sizes")
+		return 0, ErrUnequalHashes
 	}
 	for idx := 0; idx < len(i.hash); idx++ {
 		hamming += bits.OnesCount8(i.hash[idx] ^ other.hash[idx])
@@ -44,26 +47,38 @@ func (i *Imagehash) Distance(other Imagehash) (int, error) {
 	return hamming, nil
 }
 
-func (i *Imagehash) Whash(filename string, hashsize int) error {
-	data, err := grayscale(filename)
+func (i *Imagehash) Whash(image Vectorizer, hashsize uint) error {
+	data, err := image.Vectorize()
 	if err != nil {
 		return err
 	}
-	hashsize = int(floorp2(hashsize))
+	if hashsize == 0 || hashsize > uint(len(data)) {
+		return ErrBadHashSize
+	}
+	hashsize = floorp2(int(hashsize))
+	i.hash = make([]byte, hashsize*hashsize/8)
 	level := bits.Len(uint(len(data))) - 1
-	hashlevel := bits.Len(uint(hashsize)) - 1
+	hashlevel := bits.Len(hashsize) - 1
 	DWT2d(data, level)
-	eraselevel(data, level)
+	data[0][0] = 0.0
 	IDWT2d(data, level)
 	DWT2d(data, level-hashlevel)
 	excerpt := getexcerpt(data, hashsize)
 	med := median(excerpt)
-	i.hash = make([]byte, hashsize*hashsize/8)
+	i.pack(excerpt, med, hashsize)
+	return nil
+}
+
+func (i *Imagehash) pack(excerpt [][]float64, med float64, hashsize uint) {
+	var (
+		acc byte
+		k   uint
+		j   uint
+	)
 	ctr := 0
 	offset := 0
-	var acc byte
-	for k := 0; k < hashsize; k++ {
-		for j := 0; j < hashsize; j++ {
+	for k = 0; k < hashsize; k++ {
+		for j = 0; j < hashsize; j++ {
 			if excerpt[k][j] > med {
 				acc ^= 1
 			}
@@ -76,42 +91,4 @@ func (i *Imagehash) Whash(filename string, hashsize int) error {
 			acc <<= 1
 		}
 	}
-	return nil
-}
-
-func grayscale(filename string) ([][]float64, error) {
-	file, err := os.Open(filename)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	img, err := png.Decode(file)
-	if err != nil {
-		return nil, err
-	}
-
-	bounds := img.Bounds()
-	imgScale := int(floorp2(min(bounds.Max.X, bounds.Max.Y)))
-	res := image.NewRGBA(image.Rect(0, 0, imgScale, imgScale))
-	draw.NearestNeighbor.Scale(res, res.Rect, img, bounds, draw.Over, nil)
-
-	data := make([][]float64, imgScale)
-	for y := 0; y < imgScale; y++ {
-		data[y] = make([]float64, imgScale)
-		for x := 0; x < imgScale; x++ {
-			pixel := res.At(x, y)
-			r, g, b, _ := pixel.RGBA()
-			l := 0.299*float64(r) + 0.587*float64(g) + 0.114*float64(b)
-			data[y][x] = l / 65535.0
-		}
-	}
-	return data, nil
-}
-
-func min(x, y int) int {
-	if x < y {
-		return x
-	}
-	return y
 }

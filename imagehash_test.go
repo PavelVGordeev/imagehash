@@ -70,37 +70,50 @@ func TestImagehash_Whash(t *testing.T) {
 	tests := []struct {
 		name     string
 		file     string
-		level    int
-		whash    string
+		level    uint
 		distance int
+		whash    string
+		wantErr  assert.ErrorAssertionFunc
 	}{
 		{
 			name:     "lenna.png_16×16 bits",
 			file:     "lenna.png",
 			level:    16,
-			distance: 3,
+			distance: 0,
 			whash:    "cfbccfbc43f847e947fb5e7348e341e7414741c741cf40cf40ca40fe40f441f0",
+			wantErr:  assert.NoError,
 		},
 		{
 			name:     "lenna.png_8×8 bits",
 			file:     "lenna.png",
 			level:    8,
-			distance: 3,
+			distance: 0,
 			whash:    "be98bd890b0b8f8c",
+			wantErr:  assert.NoError,
 		},
 		{
-			name:     "rust.png_16×16 bits",
-			file:     "rust.png",
+			name:     "gopher.png_16×16 bits",
+			file:     "gopher.png",
 			level:    16,
-			distance: 3,
-			whash:    "fe1ffe07f607c603800180018001800180038031c0ff81ffe1ffe1ffffffffff",
+			distance: 0,
+			whash:    "01800fa01ff03cf03ff83ffc1ffc1ffc0ffc07fc07fc07fc07fe07f003800200",
+			wantErr:  assert.NoError,
 		},
 		{
-			name:     "rust.png_8×8 bits",
-			file:     "rust.png",
+			name:     "gopher.png_8×8 bits",
+			file:     "gopher.png",
 			level:    8,
-			distance: 3,
-			whash:    "f3b10101818f8fff",
+			distance: 0,
+			whash:    "187c7e3e3e3e1c10",
+			wantErr:  assert.NoError,
+		},
+		{
+			name:     "gopher.png_512*512 bits",
+			file:     "gopher.png",
+			level:    512,
+			distance: 0,
+			whash:    "",
+			wantErr:  assert.Error,
 		},
 	}
 	for _, tt := range tests {
@@ -109,11 +122,13 @@ func TestImagehash_Whash(t *testing.T) {
 			j := Imagehash{}
 			err := j.FromString(tt.whash)
 			assert.NoError(t, err)
-			err = i.Whash(tt.file, tt.level)
-			assert.NoError(t, err)
+			err = i.Whash(Image{path: tt.file}, tt.level)
+			if !tt.wantErr(t, err) {
+				t.Fatalf("Whash() error = %v", err)
+			}
 			d, err := i.Distance(j)
 			assert.NoError(t, err)
-			assert.Less(t, d, tt.distance)
+			assert.LessOrEqual(t, d, tt.distance)
 		})
 	}
 }
@@ -161,7 +176,7 @@ func TestImagehash_Distance(t *testing.T) {
 			}
 			got, err := i.Distance(tt.args.other)
 			if !tt.wantErr(t, err) {
-				t.Fatalf("Distance() error = %v, wantErr %v", err, tt.wantErr)
+				t.Fatalf("Distance() error = %v", err)
 			}
 			assert.Equal(t, tt.want, got)
 		})

@@ -179,8 +179,18 @@ func Test_floorp2(t *testing.T) {
 		want uint
 	}{
 		{
-			name: "1234",
-			val:  1234,
+			name: "1023",
+			val:  1023,
+			want: 512,
+		},
+		{
+			name: "1024",
+			val:  1024,
+			want: 1024,
+		},
+		{
+			name: "1025",
+			val:  1025,
 			want: 1024,
 		},
 		{
@@ -269,60 +279,35 @@ func Test_median(t *testing.T) {
 	}
 }
 
-func Test_eraselevel(t *testing.T) {
+func Test_min(t *testing.T) {
 	tests := []struct {
-		name  string
-		val   [][]float64
-		want  [][]float64
-		level int
+		name string
+		x    int
+		y    int
+		want int
 	}{
 		{
-			name: "level1_4×4",
-			val: [][]float64{
-				{8., 2., 3., 4.},
-				{5., 6., 7., 1.},
-				{9., 10., 11., 12.},
-				{13., 14., 15., 16.}},
-			want: [][]float64{
-				{0., 0., 3., 4.},
-				{0., 0., 7., 1.},
-				{9., 10., 11., 12.},
-				{13., 14., 15., 16.}},
-			level: 1,
+			name: "0 vs 0",
+			x:    0,
+			y:    0,
+			want: 0,
 		},
 		{
-			name: "level2_4×4",
-			val: [][]float64{
-				{8., 2., 3., 4.},
-				{5., 6., 7., 1.},
-				{9., 10., 11., 12.},
-				{13., 14., 15., 16.}},
-			want: [][]float64{
-				{0., 2., 3., 4.},
-				{5., 6., 7., 1.},
-				{9., 10., 11., 12.},
-				{13., 14., 15., 16.}},
-			level: 2,
+			name: "1 vs 0",
+			x:    1,
+			y:    0,
+			want: 0,
 		},
 		{
-			name: "level3_4×4 not erasing",
-			val: [][]float64{
-				{8., 2., 3., 4.},
-				{5., 6., 7., 1.},
-				{9., 10., 11., 12.},
-				{13., 14., 15., 16.}},
-			want: [][]float64{
-				{8., 2., 3., 4.},
-				{5., 6., 7., 1.},
-				{9., 10., 11., 12.},
-				{13., 14., 15., 16.}},
-			level: 3,
+			name: "0 vs 1",
+			x:    0,
+			y:    1,
+			want: 0,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			eraselevel(tt.val, tt.level)
-			assert.Equal(t, tt.want, tt.val)
+			assert.Equalf(t, tt.want, min(tt.x, tt.y), "min(%v, %v)", tt.x, tt.y)
 		})
 	}
 }
