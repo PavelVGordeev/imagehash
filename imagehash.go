@@ -1,4 +1,4 @@
-package main
+package imagehash
 
 import (
 	"encoding/hex"
@@ -10,13 +10,11 @@ import (
 var (
 	ErrBadHashSize   = errors.New("incompatible hashsize")
 	ErrUnequalHashes = errors.New("hashes have unequal sizes")
+	ErrNilImage      = errors.New("image is nil")
 )
 
 type Imagehash struct {
 	hash []byte
-}
-type Vectorizer interface {
-	Vectorize() ([][]float64, error)
 }
 
 func (i *Imagehash) String() string {
@@ -36,7 +34,6 @@ func (i *Imagehash) FromString(hashstr string) error {
 	return nil
 }
 
-// Поиск расстояния Хэмминга для двух хэшей идентичной длины
 func (i *Imagehash) Distance(other Imagehash) (int, error) {
 	hamming := 0
 	if len(i.hash) != len(other.hash) {
@@ -49,6 +46,9 @@ func (i *Imagehash) Distance(other Imagehash) (int, error) {
 }
 
 func (i *Imagehash) Whash(image image.Image, hashsize uint) error {
+	if image == nil {
+		return ErrNilImage
+	}
 	data, err := grayscale(image)
 	if err != nil {
 		return err

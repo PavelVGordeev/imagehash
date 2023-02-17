@@ -1,8 +1,9 @@
-package main
+package imagehash
 
 import (
-	"golang.org/x/image/draw"
 	"image"
+
+	"golang.org/x/image/draw"
 )
 
 func grayscale(img image.Image) ([][]float64, error) {
